@@ -5,8 +5,8 @@ import numpy as np
 import fft_process
 import get_data
 import threading
-import shared_variable
 from sklearn.preprocessing import normalize
+from queue import Queue
 
 
 # load trained model
@@ -16,11 +16,16 @@ Dom_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEA
 Lik_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/lik_model.pkl")
 
 
+# 线程通信队列
+queue = Queue()
+
+
 # 线程1，实时收集EEG数据
 def thread_collect_data():
     print('Thread %s is running...' % threading.current_thread().name)
     while True:
-        get_data.get_data()
+        data = get_data.get_data()
+        queue.put(data)
 
 
 def predict(data, model):
@@ -34,19 +39,21 @@ t = threading.Thread(target=thread_collect_data, name='CollectThread')
 t.start()
 
 while True:
-    # 轮询共享数组
-    while len(shared_variable.data) == 0:
-        print("EEG data is empty...")
-        time.sleep(10)
-        continue
+    # 从队列中取出data，若没有data则阻塞
+    raw_data = queue.get()
+    # while len(shared_variable.data) == 0:
+    #     print("EEG data is empty...")
+    #     time.sleep(30)
+    #     continue
 
     print("Get latest EEG data...")
+    # print(raw_data.shape)
     # 取出最新收集的EEG并清空共享数组
-    raw_data = shared_variable.data[-1]
-    shared_variable.data.clear()
+    # raw_data = shared_variable.data[-1]
+    # shared_variable.data.clear()
 
     # fft处理
-    fft_data = fft_process.fft_process(raw_data)
+    fft_data = fft_process.fft_process(raw_data[1:9, :])
     fft_data = normalize(fft_data)
 
     # start prediction

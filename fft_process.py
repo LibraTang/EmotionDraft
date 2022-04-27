@@ -22,6 +22,6 @@ def fft_process(raw_data):
         start = start + step_size
 
     meta = np.array(meta)
-    print(meta.shape)
+    # print(meta.shape)
 
     return meta
