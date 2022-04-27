@@ -7,14 +7,6 @@ window_size = 500  # Averaging band power of 2 sec
 step_size = 31  # Each 0.125 sec update once
 sample_rate = 250  # Sampling rate of 250 Hz
 
-# dir_path = "openbci_emotion_eeg/"
-# filename = "happy2"
-
-# data = np.loadtxt(dir_path + filename + ".txt", delimiter=",", skiprows=5, usecols=(1, 2, 4, 5, 6, 7, 8))
-# data = data.T
-# data = get_data.get_data()
-# print(data.shape)
-
 
 def fft_process(raw_data):
     start = 0
@@ -31,7 +23,5 @@ def fft_process(raw_data):
 
     meta = np.array(meta)
     print(meta.shape)
-
-    # np.save("out/fft-" + filename, meta, allow_pickle=True, fix_imports=True)
 
     return meta
