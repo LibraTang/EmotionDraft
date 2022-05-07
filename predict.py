@@ -1,12 +1,10 @@
-import time
-
 import joblib
 import numpy as np
-import fft_process
-import get_data
 import threading
 from sklearn.preprocessing import normalize
 from queue import Queue
+from fft_process import fft_process
+from get_data import get_data
 
 
 # load trained model
@@ -14,7 +12,6 @@ Val_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEA
 Aro_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/aro_model.pkl")
 Dom_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/dom_model.pkl")
 Lik_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/lik_model.pkl")
-
 
 # 线程通信队列
 queue = Queue()
@@ -24,7 +21,7 @@ queue = Queue()
 def thread_collect_data():
     print('Thread %s is running...' % threading.current_thread().name)
     while True:
-        data = get_data.get_data()
+        data = get_data()
         queue.put(data)
 
 
@@ -41,19 +38,10 @@ t.start()
 while True:
     # 从队列中取出data，若没有data则阻塞
     raw_data = queue.get()
-    # while len(shared_variable.data) == 0:
-    #     print("EEG data is empty...")
-    #     time.sleep(30)
-    #     continue
-
     print("Get latest EEG data...")
-    # print(raw_data.shape)
-    # 取出最新收集的EEG并清空共享数组
-    # raw_data = shared_variable.data[-1]
-    # shared_variable.data.clear()
 
     # fft处理
-    fft_data = fft_process.fft_process(raw_data[1:9, :])
+    fft_data = fft_process(raw_data[1:9, :])
     fft_data = normalize(fft_data)
 
     # start prediction

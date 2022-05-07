@@ -17,11 +17,7 @@ def fft_process(raw_data):
             x = raw_data[i][start: start + window_size]  # Slice raw data over 2 sec, at interval of 0.125 sec
             y = pe.bin_power(x, band, sample_rate)  # FFT over 2 sec of channel j, in seq of theta, alpha, low beta, high beta, gamma
             meta_data = meta_data + list(y[0])
-
         meta.append(np.array(meta_data))
         start = start + step_size
-
     meta = np.array(meta)
-    # print(meta.shape)
-
     return meta
