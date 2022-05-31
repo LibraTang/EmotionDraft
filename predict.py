@@ -1,10 +1,15 @@
+import time
 import joblib
 import numpy as np
-import threading
+
+from pylsl import StreamInlet, resolve_stream
 from sklearn.preprocessing import normalize
-from queue import Queue
 from fft_process import fft_process
-from get_data import get_data
+
+
+def predict(data, model):
+    output = model.predict(data)
+    return np.mean(output)
 
 
 # load trained model
@@ -13,51 +18,43 @@ Aro_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEA
 Dom_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/dom_model.pkl")
 Lik_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/lik_model.pkl")
 
-# 线程通信队列
-queue = Queue()
 
+print("looking for an EEG stream...")
+streams = resolve_stream('type', 'EEG')
 
-# 线程1，实时收集EEG数据
-def thread_collect_data():
-    print('Thread %s is running...' % threading.current_thread().name)
-    while True:
-        data = get_data()
-        queue.put(data)
+inlet = StreamInlet(streams[0])
 
-
-def predict(data, model):
-    output = model.predict(data)
-    return np.mean(output)
-
-
-print('Thread %s is running...' % threading.current_thread().name)
-# 启动收集EEG线程
-t = threading.Thread(target=thread_collect_data, name='CollectThread')
-t.start()
-
+tmp = []
 while True:
-    # 从队列中取出data，若没有data则阻塞
-    raw_data = queue.get()
-    print("Get latest EEG data...")
+    sample, timestamp = inlet.pull_sample()
+    tmp.append(sample)
+    # 每隔10s做一次情绪识别
+    if len(tmp) >= 256 * 10:
+        data = np.array(tmp)
+        data = data.T  # channels * samples
+        # fft处理
+        fft_data = fft_process(data)
+        fft_data = normalize(fft_data)
 
-    # fft处理
-    fft_data = fft_process(raw_data[1:9, :])
-    fft_data = normalize(fft_data)
+        # start prediction
+        score_valence = predict(fft_data, Val_R)
+        score_arousal = predict(fft_data, Aro_R)
 
-    # start prediction
-    score_valence = predict(fft_data, Val_R)
-    score_arousal = predict(fft_data, Aro_R)
+        current_time = time.strftime("%H:%M:%S", time.localtime())
+        print("*******************************\n"
+              "Current time: %s" % current_time)
+        print("Valence: %f" % score_valence)
+        print("Arousal: %f" % score_arousal)
 
-    print("Valence: %f" % score_valence)
-    print("Arousal: %f" % score_arousal)
+        if 4.5 <= score_valence <= 5.5 and 4.5 <= score_arousal <= 5.5:
+            print("Emotion prediction: Calm")
+        elif score_valence >= 5 and score_arousal >= 5:
+            print("Emotion prediction: Happy/Excited")
+        elif score_valence <= 5 and score_arousal >= 5:
+            print("Emotion prediction: Angry/Frustrated")
+        elif score_valence <= 5 and score_arousal <= 5:
+            print("Emotion prediction: Depressed/Tired")
+        elif score_valence >= 5 and score_arousal <= 5:
+            print("Emotion prediction: Relaxed/Calm")
 
-    if score_valence >= 5 and score_arousal >= 5:
-        print("Current emotion prediction: Happy/Excited")
-    elif score_valence <= 5 and score_arousal >= 5:
-        print("Current emotion prediction: Angry/Frustrated")
-    elif score_valence <= 5 and score_arousal <= 5:
-        print("Current emotion prediction: Depressed/Tired")
-    else:
-        print("Current emotion prediction: Relaxed/Calm")
-
-
+        tmp.clear()
