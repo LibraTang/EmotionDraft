@@ -1,11 +1,10 @@
-import time
 import joblib
 import numpy as np
+import mne
 
-from pylsl import StreamInlet, resolve_stream
 from sklearn.preprocessing import normalize
 from fft_process import fft_process
-
+from mne.io import concatenate_raws, read_raw_edf
 
 def predict(data, model):
     output = model.predict(data)
@@ -18,43 +17,32 @@ Aro_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEA
 Dom_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/dom_model.pkl")
 Lik_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/lik_model.pkl")
 
+raw = read_raw_edf("music_emotion_eeg/S01E01_filtered.edf", preload=False)
 
-print("looking for an EEG stream...")
-streams = resolve_stream('type', 'EEG')
+events_from_annot, event_dict = mne.events_from_annotations(raw)
 
-inlet = StreamInlet(streams[0])
+start = events_from_annot[0][0]
+end = events_from_annot[1][0]
 
-tmp = []
-while True:
-    sample, timestamp = inlet.pull_sample()
-    tmp.append(sample)
-    # 每隔10s做一次情绪识别
-    if len(tmp) >= 256 * 10:
-        data = np.array(tmp)
-        data = data.T  # channels * samples
-        # fft处理
-        fft_data = fft_process(data)
-        fft_data = normalize(fft_data)
+rawEEG = raw.get_data()  # 读取原始信息
+music_eeg = rawEEG[:8, start:end+1]  # 获取听音乐时段的eeg
 
-        # start prediction
-        score_valence = predict(fft_data, Val_R)
-        score_arousal = predict(fft_data, Aro_R)
+fft_data = fft_process(music_eeg)
+fft_data = normalize(fft_data)
 
-        current_time = time.strftime("%H:%M:%S", time.localtime())
-        print("*******************************\n"
-              "Current time: %s" % current_time)
-        print("Valence: %f" % score_valence)
-        print("Arousal: %f" % score_arousal)
+score_valence = predict(fft_data, Val_R)
+score_arousal = predict(fft_data, Aro_R)
 
-        if 4.5 <= score_valence <= 5.5 and 4.5 <= score_arousal <= 5.5:
-            print("Emotion prediction: Calm")
-        elif score_valence >= 5 and score_arousal >= 5:
-            print("Emotion prediction: Happy/Excited")
-        elif score_valence <= 5 and score_arousal >= 5:
-            print("Emotion prediction: Angry/Frustrated")
-        elif score_valence <= 5 and score_arousal <= 5:
-            print("Emotion prediction: Depressed/Tired")
-        elif score_valence >= 5 and score_arousal <= 5:
-            print("Emotion prediction: Relaxed/Calm")
+print("Valence: %f" % score_valence)
+print("Arousal: %f" % score_arousal)
 
-        tmp.clear()
+if 4.5 <= score_valence <= 5.5 and 4.5 <= score_arousal <= 5.5:
+    print("Emotion prediction: Calm")
+elif score_valence >= 5 and score_arousal >= 5:
+    print("Emotion prediction: Happy/Excited")
+elif score_valence <= 5 and score_arousal >= 5:
+    print("Emotion prediction: Angry/Frustrated")
+elif score_valence <= 5 and score_arousal <= 5:
+    print("Emotion prediction: Depressed/Tired")
+elif score_valence >= 5 and score_arousal <= 5:
+    print("Emotion prediction: Relaxed/Calm")

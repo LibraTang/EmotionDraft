@@ -1,0 +1,5 @@
+test.py
+lsl*.py
+music_emotion_eeg/*
+openbci_emotion_eeg/*
+out/*
