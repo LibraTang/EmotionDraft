@@ -4,7 +4,7 @@ import mne
 
 from sklearn.preprocessing import normalize
 from fft_process import fft_process
-from mne.io import concatenate_raws, read_raw_edf
+from mne.io import read_raw_edf
 
 def predict(data, model):
     output = model.predict(data)
@@ -25,7 +25,7 @@ start = events_from_annot[0][0]
 end = events_from_annot[1][0]
 
 rawEEG = raw.get_data()  # 读取原始信息
-music_eeg = rawEEG[:8, start:end+1]  # 获取听音乐时段的eeg
+music_eeg = rawEEG[[0, 1, 5, 6, 10, 11, 14, 15], start:end+1]  # 获取听音乐时段的eeg
 
 fft_data = fft_process(music_eeg)
 fft_data = normalize(fft_data)
