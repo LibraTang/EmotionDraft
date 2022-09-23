@@ -1,26 +1,20 @@
-import joblib
 import numpy as np
 import mne
 import matplotlib.pyplot as plt
+import emotion_model as em
 
 from sklearn.preprocessing import normalize
 from fft_process import fft_process
 from mne.io import read_raw_edf
 
-tempo_sequence = [4, 5, 1]  # 按节奏重排文件顺序
-tone_sequence = [2, 6, 3]  # 按音调重排文件顺序
 
 def predict(data, model):
     output = model.predict(data)
     return np.mean(output)
 
 
-# load trained model
-Val_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/val_model.pkl")
-Aro_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/aro_model.pkl")
-Dom_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/dom_model.pkl")
-Lik_R = joblib.load("C:/Users/Libra/OneDrive - std.uestc.edu.cn/UR/BCI/model/DEAP_Emotion/lik_model.pkl")
-
+tempo_sequence = [4, 5, 1]  # 按节奏重排文件顺序
+tone_sequence = [2, 6, 3]  # 按音调重排文件顺序
 
 tempo_x = [90, 120, 150]  # tempo x轴
 tone_x = ['C', 'E', 'G']  # tone x轴
@@ -32,8 +26,10 @@ valence_tone_ax = axes[0, 1]
 arousal_tempo_ax = axes[1, 0]
 arousal_tone_ax = axes[1, 1]
 
+# 图片大小
 fig.set_size_inches(16, 9)
 
+# 坐标轴名称
 valence_tempo_ax.set_xlabel('tempo(bpm)')
 valence_tempo_ax.set_ylabel('valence')
 valence_tone_ax.set_xlabel('tone')
@@ -71,8 +67,8 @@ for i in range(1, 19):
         fft_data = fft_process(music_eeg)
         fft_data = normalize(fft_data)
 
-        score_valence = predict(fft_data, Val_R)
-        score_arousal = predict(fft_data, Aro_R)
+        score_valence = predict(fft_data, em.Val_R)
+        score_arousal = predict(fft_data, em.Aro_R)
 
         valence_tempo_arr.append(score_valence)
         arousal_tempo_arr.append(score_arousal)
@@ -99,8 +95,8 @@ for i in range(1, 19):
         fft_data = fft_process(music_eeg)
         fft_data = normalize(fft_data)
 
-        score_valence = predict(fft_data, Val_R)
-        score_arousal = predict(fft_data, Aro_R)
+        score_valence = predict(fft_data, em.Val_R)
+        score_arousal = predict(fft_data, em.Aro_R)
 
         valence_tone_arr.append(score_valence)
         arousal_tone_arr.append(score_arousal)
